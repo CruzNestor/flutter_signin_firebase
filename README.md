@@ -1,5 +1,5 @@
 # Sign in with Firebase Auth
-Application developed with Clean Architecture. see a demo [here](https://cruznestor.github.io/flutter_signin_firebase_page/)
+Application developed with Clean Architecture. Watch a [demo](https://cruznestor.github.io/flutter_signin_firebase_page/)
 
 **Note**: You must create your own "lib/firebase_options.dart" file, See how to create it in the [official documentation](https://firebase.google.com/docs/flutter/setup?hl=es-419&platform=android).
 
