@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/errors/exceptions.dart';
@@ -51,23 +53,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> signInWithGoogle() async {
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-    if(googleUser == null){
-      throw CustomException(message: 'Canceled');
+    fa.UserCredential? credential;
+
+    if(kIsWeb) {
+      final authProvider = GoogleAuthProvider();
+      credential = await firebaseAuth.signInWithPopup(authProvider);
+    } else {
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if(googleUser == null){
+        throw CustomException(message: 'Canceled');
+      }
+      
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final googleCredential = fa.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      credential = await firebaseAuth.signInWithCredential(googleCredential);
     }
-    
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    final googleCredential = fa.GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    fa.UserCredential credential = await firebaseAuth.signInWithCredential(googleCredential);
     return UserModel.fromFirebase(credential.user);
   }
 
   @override
   Future<bool> signOut() async {
-    await googleSignIn.signOut();
+    if (!kIsWeb) {
+      await googleSignIn.signOut();
+    }
     await firebaseAuth.signOut();
     return true;
   }

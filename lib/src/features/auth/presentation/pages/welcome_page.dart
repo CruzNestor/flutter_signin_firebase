@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../../core/constants/ui_constants.dart';
 import '../../../../core/presentation/my_appbar.dart';
-
-import 'sign_in_page.dart';
-import 'sign_up_page.dart';
 
 
 class WelcomePage extends StatelessWidget {
@@ -57,9 +56,7 @@ class WelcomePage extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 10, left: 10),
                 child: TextButton(
                   onPressed: (){
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const SignUpPage()),
-                    );
+                    context.push('/signup');
                   },
                   style: TextButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
@@ -74,9 +71,7 @@ class WelcomePage extends StatelessWidget {
                 margin: const EdgeInsets.only(top: 10.0, right: 10.0, bottom: 20.0, left: 10.0),
                 child: OutlinedButton(
                   onPressed: (){
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const SignInPage()),
-                    );
+                    context.push('/signin');
                   },
                   child: const Text('Sign in')
                 )

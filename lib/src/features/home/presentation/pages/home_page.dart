@@ -3,20 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../auth/presentation/pages/welcome_page.dart';
 import '../widgets/loader_dialog_widget.dart';
 import '../widgets/sign_out_dialog_widget.dart';
 
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
-
-  void goToWelcomePage(BuildContext context) async {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const WelcomePage()), 
-      (route) => false
-    );
-  }
 
   void getUser(BuildContext context) {
     final provider = BlocProvider.of<AuthCubit>(context);
@@ -28,17 +20,14 @@ class HomePage extends StatelessWidget {
     final provider = BlocProvider.of<AuthCubit>(context);
     await Future.delayed(const Duration(seconds: 1), (){});
     provider.signOut();
-    if(context.mounted) Navigator.of(context).pop();
+    if(context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if(state is Unauthenticated){
-          goToWelcomePage(context);
-        }
-      },
+    return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
         return Scaffold(
           appBar: buildAppBar(context),
@@ -48,7 +37,7 @@ class HomePage extends StatelessWidget {
             },
             child: Column(children: [
               checkState(context, state)
-            ]),
+            ])
           ) 
         );
       }

@@ -31,6 +31,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+.fvm/flutter_sdk
 
 # Symbolication related
 app.*.symbols
@@ -43,4 +44,14 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Firebase
+#? android
 /android/app/google-services.json
+#? ios
+/ios/firebase_app_id_file.json
+/ios/Runner/GoogleService-info.plist
+#? macos
+/macos/Runner/GoogleService-info.plist
+/macos/firebase_app_id_file.json
+
+/lib/firebase_options.dart

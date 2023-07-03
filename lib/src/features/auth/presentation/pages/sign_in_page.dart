@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ionicons/ionicons.dart';
 
 import '../../../../core/presentation/my_alert_widget.dart';
 import '../../../../core/presentation/my_appbar.dart';
-import '../../../home/presentation/pages/home_page.dart';
 import '../cubit/auth_cubit.dart';
-import '../widgets/auth_widgets.dart';
-
-import 'sign_up_page.dart';
+import '../widgets/custom_text_form_field.dart';
 
 
 class SignInPage extends StatefulWidget {
@@ -20,34 +18,39 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
-  final _textControllerEmail = TextEditingController();
-  final _textControllerPass = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  final _emailFieldKey = GlobalKey<FormFieldState>();
+  final _passwordFieldKey = GlobalKey<FormFieldState>();
+
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
 
   @override
-  void dispose() {
-    _textControllerEmail.dispose();
-    _textControllerPass.dispose();
-    super.dispose();
+  void initState() {
+    _emailFocus.addListener(() {
+      validateTextFormField(_emailFieldKey, _emailFocus);
+    });
+    _passwordFocus.addListener(() {
+      validateTextFormField(_passwordFieldKey, _passwordFocus);
+    });
+    super.initState();
   }
 
-  void goToHomePage(BuildContext context) {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const HomePage()), 
-      (route) => false
-    );
+  void validateTextFormField(GlobalKey<FormFieldState> key, FocusNode focus) {
+    if(!focus.hasFocus){
+      key.currentState?.validate();
+    }
   }
 
-  void signIn(BuildContext context) async{
-    String email = _textControllerEmail.text.trim();
-    String password = _textControllerPass.text;
-
-    if(email.isEmpty || password.isEmpty){
-      MyAlert.showToast(
-        context: context,
-        message: 'The email and password are required'
-      );
+  void signIn(BuildContext context) async {
+    if(!_formKey.currentState!.validate()){
       return;
     }
+    
+    String email = _emailFieldKey.currentState!.value.trim();
+    String password = _passwordFieldKey.currentState!.value;
+
     final provider = BlocProvider.of<AuthCubit>(context);
     provider.signIn(email: email, password: password);
   }
@@ -55,6 +58,13 @@ class _SignInPageState extends State<SignInPage> {
   void signInWithGoogle(BuildContext context) async{
     final provider = BlocProvider.of<AuthCubit>(context);
     provider.signInWithGoogle();
+  }
+
+  @override
+  void dispose() {
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
   }
 
   @override
@@ -74,9 +84,7 @@ class _SignInPageState extends State<SignInPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: BlocConsumer<AuthCubit, AuthState>(
                   listener: (_, state) {
-                    if(state is Authenticated){
-                      goToHomePage(context);
-                    } else if(state is AuthFailure){
+                    if(state is AuthFailure){
                       MyAlert.showToast(
                         context: context, 
                         message: state.message,
@@ -88,6 +96,7 @@ class _SignInPageState extends State<SignInPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       buildForm(context, state),
+                      buildSectionSocial(context, state),
                       buildSectionSignUp()
                     ]
                   )
@@ -101,103 +110,128 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Widget buildForm(BuildContext context, AuthState state) {
-    return Column(children: [
-      Container(
-        padding: const EdgeInsets.only(bottom: 25),
-        child: Text('Hello again!', style: Theme.of(context).textTheme.headlineSmall),
-      ),
-      Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text('Account information', style: Theme.of(context).textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)),
-      ),
-      Container(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: TextField(
-          controller: _textControllerEmail,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            hintText: 'Email'
-          ),
+    return Form(
+      key: _formKey,
+      child: Column(children: [
+        Container(
+          padding: const EdgeInsets.only(bottom: 25),
+          child: Text('Hello again!', style: Theme.of(context).textTheme.headlineSmall),
         ),
-      ),
-      Container(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: MyPasswordField(
-          controller: _textControllerPass
+        Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text('Account information', style: Theme.of(context).textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)),
         ),
-      ),
-      Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(top: 40),
-        child: SizedBox(
-          height: 50,
-          child: TextButton(
-            onPressed: (){
-              state is Authenticating || state is AuthenticatingWithGoogle
-                ? null 
-                : signIn(context);
+        Container(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: CustomTextFormField(
+            formFieldKey: _emailFieldKey,
+            focusNode: _emailFocus,
+            hintText: 'Email',
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              if(value == null || value.isEmpty){
+                return 'Please enter your email';
+              }
+              return null;
             },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.9)
-            ),     
-            child: state is Authenticating 
-              ? const SizedBox(width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                )
-              : const Text('Sign in', style: TextStyle(color: Colors.white))
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: CustomTextFormField(
+            formFieldKey: _passwordFieldKey,
+            focusNode: _passwordFocus,
+            hintText: 'Password',
+            variant: TextFormFieldVariant.password,
+            validator: (value) {
+              if(value == null || value.isEmpty){
+                return 'Please enter your password';
+              }
+              return null;
+            },
           )
-        )
-      ),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          SizedBox(
-            width: 100,
-            child: Divider(
-              thickness: 1
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 40.0),
-            child: Text("Or continue with"),
-          ),
-          SizedBox(
-            width: 100,
-            child: Divider(
-              thickness: 1
-            ),
-          ),
-        ],
-      ),
-      SizedBox(
-        height: 50,
-        width: double.infinity,
-        child: OutlinedButton(
-          onPressed: (){
-            state is Authenticating || state is AuthenticatingWithGoogle 
-              ? null 
-              : signInWithGoogle(context);
-          }, 
-          child: state is AuthenticatingWithGoogle
-            ? const SizedBox(width: 20, height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2)
+        ),
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 40),
+          child: SizedBox(
+            height: 50,
+            child: TextButton(
+              onPressed: (){
+                state is Authenticating || state is AuthenticatingWithGoogle
+                  ? null 
+                  : signIn(context);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.9)
+              ),     
+              child: state is Authenticating 
+                ? const SizedBox(width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                  )
+                : const Text('Sign in', style: TextStyle(color: Colors.white))
             )
-            : Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Ionicons.logo_google),
-                Padding(
-                  padding: EdgeInsets.only(top: 2.0, left: 8.0),
-                  child: Text('Google',style: TextStyle(fontSize: 16.0)),
-                )
-              ]
           )
         )
-      )
-    ]);
+      ])
+    );
+  }
+
+  Widget buildSectionSocial(BuildContext context, AuthState state) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 100,
+              child: Divider(
+                thickness: 1
+              )
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 40.0),
+              child: Text("Or continue with"),
+            ),
+            SizedBox(
+              width: 100,
+              child: Divider(
+                thickness: 1
+              )
+            )
+          ]
+        ),
+        SizedBox(
+          height: 50,
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: (){
+              state is Authenticating || state is AuthenticatingWithGoogle 
+                ? null 
+                : signInWithGoogle(context);
+            }, 
+            child: state is AuthenticatingWithGoogle
+              ? const SizedBox(width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2)
+              )
+              : const Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Ionicons.logo_google),
+                  Padding(
+                    padding: EdgeInsets.only(top: 2.0, left: 8.0),
+                    child: Text('Google',style: TextStyle(fontSize: 16.0)),
+                  )
+                ]
+            )
+          )
+        )
+      ]
+    );
   }
 
   Widget buildSectionSignUp() {
@@ -208,9 +242,9 @@ class _SignInPageState extends State<SignInPage> {
         children: [
           const Text("Don't you have an account?"),
           TextButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const SignUpPage())
-            ), 
+            onPressed: () {
+              context.push('/signup');
+            },
             child: const Text('Sign up')
           )
         ]
